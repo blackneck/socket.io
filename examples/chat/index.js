@@ -9,10 +9,7 @@ server.listen(port, function () {
   console.log('Server listening at port %d', port);
 });
 
-// Routing
 app.use(express.static(__dirname + '/public'));
-
-// Chatroom
 
 
 io.on('connection', function (socket) {
@@ -20,12 +17,17 @@ io.on('connection', function (socket) {
 
   socket.on('offer', function (data) {
     console.log(data.desc.type);
-    socket.broadcast.emit('offerRecieved', {desc: data.desc});    
+    socket.broadcast.emit('offerRecieved', { desc: data.desc, candidate: data.candidate });
   });
-  
+
   socket.on('answer', function (data) {
     console.log(data.desc.type);
-    socket.broadcast.emit('answerRecieved', {desc: data.desc});    
-  })
+    socket.broadcast.emit('answerRecieved', { desc: data.desc, candidate: data.candidate });
+  });
+
+  socket.on('candidate', function (data) {
+    console.log(data.candidate);
+    socket.broadcast.emit('candidateRecieved', { candidate: data.candidate });
+  });
 
 });
