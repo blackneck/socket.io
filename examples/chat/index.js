@@ -17,12 +17,12 @@ io.on('connection', function (socket) {
 
   socket.on('offer', function (data) {
     console.log(data.desc.type);
-    socket.broadcast.emit('offerRecieved', { desc: data.desc, candidate: data.candidate });
+    socket.broadcast.emit('offerRecieved', { desc: data.desc });
   });
 
   socket.on('answer', function (data) {
     console.log(data.desc.type);
-    socket.broadcast.emit('answerRecieved', { desc: data.desc, candidate: data.candidate });
+    socket.broadcast.emit('answerRecieved', { desc: data.desc });
   });
 
   socket.on('candidate', function (data) {
