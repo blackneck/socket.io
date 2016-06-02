@@ -17,11 +17,18 @@ $(document).ready(function () {
     offerToReceiveVideo: 1
   };
 
-  var socket = io();
+  var host = false;
+  var reflexive = true;
+  var relay = false;
+
+  var socket = io.connect('https://1c1a0acd.ngrok.io/');
   var localStream;
   var pc;
   var pc1;
-  var servers = { 'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }] };
+  var servers =
+    {
+      iceServers:[{urls:["turn:173.194.71.127:19305?transport=udp","turn:173.194.71.127:19305?transport=tcp","turn:173.194.65.127:19305?transport=udp"],"username":"1464915183:zKl7pIn5","credential":"1B/7AzP6nb3B6wDH1AbCoQekkZc="},{"urls":["stun:stun.l.google.com:19302"]}],
+    };
 
   function gotStream(stream) {
     console.log('Received local stream');
@@ -47,10 +54,21 @@ $(document).ready(function () {
       onIceCandidate(e);
     }
     pc.onaddstream = gotRemoteStream;
+
+    pc.onnegotiationneeded = function () {
+      pc.createOffer(offerOptions).then(onCreateOfferSuccess);
+    };
+
     pc.createOffer(offerOptions).then(onCreateOfferSuccess);
+
     callButton.disabled = true;
   }
 
+  function onCreateOfferSuccess(desc) {
+    console.log('Offer created');
+    pc.setLocalDescription(desc).then(function () { console.log('local description is set after offer creation'); });
+    socket.emit('offer', { desc: desc, candidate: pc });
+  }
 
   socket.on('offerRecieved', function (data) {
     console.log('offerRecieved');
@@ -59,21 +77,21 @@ $(document).ready(function () {
 
     pc = pc ? pc : new RTCPeerConnection(servers);
 
+
     pc.onaddstream = gotRemoteStream;
+
     pc.onicecandidate = function (e) {
       onIceCandidate(e);
-    }
+    };
+
+    pc.onnegotiationneeded = function () {
+      pc.createOffer(offerOptions).then(onCreateOfferSuccess);
+    };
+
     pc.setRemoteDescription(desc).then(function () { console.log('Remote Description is set based on offer') });
 
     pc.createAnswer().then(onCreateAnswerSuccess)
 
-  });
-
-  socket.on('answerRecieved', function (data) {
-    var desc = data.desc;
-    var pc1 = data.candidate;
-    console.log('answerRecieved');
-    pc.setRemoteDescription(desc).then(function () { console.log('Remote Description is set based on answer') });
   });
 
   function onCreateAnswerSuccess(desc) {
@@ -82,11 +100,14 @@ $(document).ready(function () {
     socket.emit('answer', { desc: desc, candidate: pc });
   }
 
-  function onCreateOfferSuccess(desc) {
-    console.log('Offer created');
-    pc.setLocalDescription(desc).then(function () { console.log('local description is set after offer creation'); });
-    socket.emit('offer', { desc: desc, candidate: pc });
-  }
+  socket.on('answerRecieved', function (data) {
+    var desc = data.desc;
+    var pc1 = data.candidate;
+    console.log('answerRecieved');
+    pc.setRemoteDescription(desc).then(function () { console.log('Remote Description is set based on answer') });
+  });
+
+
 
   function gotRemoteStream(e) {
     remoteVideo.srcObject = e.stream;
@@ -108,9 +129,15 @@ $(document).ready(function () {
   }
 
   function onIceCandidate(event) {
-    if (event.candidate) {
-      socket.emit('candidate', { candidate: event.candidate });
-    }
+    var ice = event.candidate;
+    if (!ice)
+      return;
+
+    // if (ice.candidate.indexOf('srflx') != -1) {
+    console.log(ice.candidate);
+    socket.emit('candidate', { candidate: ice });
+    // }
+
   }
 
   socket.on('candidateRecieved', function (data) {
