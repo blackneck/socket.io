@@ -13,6 +13,7 @@ app.use(express.static(__dirname + '/public'));
 
 var offers = [];
 var clients = [];
+var participants = [];
 
 io.on('connection', function (socket) {
   console.log('connected');
@@ -20,7 +21,7 @@ io.on('connection', function (socket) {
   console.log(clients.length);
 
   if (offers.length > 0 && clients.length > 1) {
-    socket.emit('offerRecieved', { desc: offers.pop() });
+    socket.emit('offerRecieved', { desc: offers.pop(), participant: participants.pop() });
   }
 
   socket.on('disconnect', function () {
@@ -32,19 +33,29 @@ io.on('connection', function (socket) {
 
   socket.on('offer', function (data) {
     offers.push(data.desc);
+    participants.push(data.participant);
     console.log(data.desc.type);
+    console.log(data.participant);
     if (clients.length > 1) {
-      socket.broadcast.emit('offerRecieved', { desc: offers.pop() });
+      socket.broadcast.emit('offerRecieved', { desc: offers.pop(), participant: participants.pop() });
     }
   });
 
   socket.on('answer', function (data) {
     console.log(data.desc.type);
-    socket.broadcast.emit('answerRecieved', { desc: data.desc });
+    console.log(data.participant);
+    socket.broadcast.emit('answerRecieved', { desc: data.desc, participant: data.participant });
   });
 
   socket.on('candidate', function (data) {
     socket.broadcast.emit('candidateRecieved', { candidate: data.candidate });
+  });
+
+  socket.on('leave', function (data) {
+    var participant = data.participant;
+    var i = participants.indexOf(participant);
+    participants.splice(i, 1);
+    socket.broadcast.emit('userLeft', { participant: participant });
   });
 
 });
