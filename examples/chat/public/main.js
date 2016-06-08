@@ -21,7 +21,7 @@ $(document).ready(function () {
   var reflexive = true;
   var relay = false;
 
-  var socket = io.connect('https://1c1a0acd.ngrok.io/');
+  var socket = io();
   var localStream;
   var pc;
   var pc1;
